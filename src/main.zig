@@ -1,42 +1,30 @@
 const std = @import("std");
-const lua = @import("modules/lua.zig");
+//const lua = @import("modules/lua.zig");
+const sdl = @import("modules/SDL.zig");
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    var lvm = try lua.LUAVM.init(true);
-    defer lvm.deinit();
-    const script =
-        \\-- script.lua
-        \\-- Receives a table, returns the sum of its components.
-        \\io.write("The table the script received has:\n");
-        \\x = 0
-        \\for i = 1, #foo do
-        \\print(i, foo[i])
-        \\x = x + foo[i]
-        \\end
-        \\io.write("Returning data back to C\n");
-        \\return x
-    ;
-    lvm.loadScript(script, script.len);
-    lvm.addTable(f64, "foo", &.{ 1, 2, 3, 4, 5 });
+    try sdl.init(sdl.InitFlags.everything);
+    defer sdl.quit();
+    var window = try sdl.createWindow("Game", null, null, 640, 480, .{ .opengl = true });
+    defer window.deinit();
+    var ren = try window.createRenderer();
+    defer ren.deinit();
 
-    lvm.run();
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    var img = sdl.createSurfaceFromMem(@embedFile("img.png"));
+    defer img.deinit();
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
-
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // don't forget to flush!
-}
-
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+    var tex = try img.CreateTexture(ren);
+    defer tex.deinit();
+    while (true) {
+        ren.clear();
+        ren.renderCopy(tex, null, null);
+        ren.present();
+        sdl.Delay(100);
+        while (sdl.pollEvent()) |ev| {
+            switch (ev) {
+                .quit => {
+                    return;
+                },
+            }
+        }
+    }
 }

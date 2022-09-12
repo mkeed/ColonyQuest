@@ -16,9 +16,12 @@ pub fn build(b: *std.build.Builder) void {
     exe.setBuildMode(mode);
     exe.install();
     exe.linkLibC();
-    exe.addCSourceFiles(lua.files[0..], lua.flags[0..]);
+    exe.linkSystemLibrary("SDL2");
+    exe.linkSystemLibrary("SDL2_image");
+    //exe.addCSourceFiles(lua.files[0..], lua.flags[0..]);
     for (lua.searchDirs) |dir| {
-        exe.addIncludeDir(dir);
+        _ = dir;
+        //exe.addIncludeDir(dir);
     }
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
