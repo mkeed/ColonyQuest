@@ -1,5 +1,5 @@
 const std = @import("std");
-
+const lua = @import("modules/lua.zig");
 pub fn build(b: *std.build.Builder) void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
@@ -15,7 +15,11 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();
-
+    exe.linkLibC();
+    exe.addCSourceFiles(lua.files[0..], lua.flags[0..]);
+    for (lua.searchDirs) |dir| {
+        exe.addIncludeDir(dir);
+    }
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
