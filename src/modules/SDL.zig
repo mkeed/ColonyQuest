@@ -110,12 +110,9 @@ pub const CreateFlags = struct {
         return val;
     }
 };
-pub const Rect = struct {
-    x: isize,
-    y: isize,
-    w: isize,
-    h: isize,
-};
+
+pub const Rect = SDL2.SDL_Rect;
+
 pub const Window = struct {
     pub const Renderer = struct {
         renderer: ?*SDL2.SDL_Renderer,
@@ -125,10 +122,8 @@ pub const Window = struct {
         pub fn clear(self: Renderer) void {
             _ = SDL2.SDL_RenderClear(self.renderer);
         }
-        pub fn renderCopy(self: Renderer, tex: Texture, src: ?Rect, dest: ?Rect) void {
-            _ = src;
-            _ = dest;
-            _ = SDL2.SDL_RenderCopy(self.renderer, tex.texture, null, null);
+        pub fn renderCopy(self: Renderer, tex: Texture, src: ?*Rect, dest: ?*Rect) void {
+            _ = SDL2.SDL_RenderCopy(self.renderer, tex.texture, src, dest);
         }
         pub fn present(self: Renderer) void {
             SDL2.SDL_RenderPresent(self.renderer);
@@ -211,19 +206,29 @@ pub fn quit() void {
 }
 
 pub fn Delay(time_ms: u32) void {
+    std.log.info("Delay", .{});
     SDL2.SDL_Delay(time_ms);
 }
 
-pub const Event = union(enum) {
-    quit: usize,
+pub const Position = struct {
+    x: isize,
+    y: isize,
 };
 
+pub const Event = union(enum) {
+    quit: usize,
+    mouseMotion: Position,
+};
+
+var eventCount: usize = 0;
 pub fn pollEvent() ?Event {
+    std.log.info("poll", .{});
     var event: SDL2.SDL_Event = undefined;
     if (SDL2.SDL_PollEvent(&event) == 0) {
         return null;
     }
-    std.log.err("Event:[{}]", .{event.type});
+    std.log.err("Event[{}]:[{}]", .{ eventCount, event.type });
+    defer eventCount +%= 1;
     switch (event.type) {
         SDL2.SDL_AUDIODEVICEADDED => {
             std.log.err("SDL_AUDIODEVICEADDED", .{});
@@ -305,6 +310,12 @@ pub fn pollEvent() ?Event {
         },
         SDL2.SDL_MOUSEMOTION => {
             std.log.err("SDL_MOUSEMOTION:[{}]", .{event.motion});
+            return Event{
+                .mouseMotion = .{
+                    .x = event.motion.x,
+                    .y = event.motion.y,
+                },
+            };
         },
         SDL2.SDL_MOUSEBUTTONDOWN => {
             std.log.err("SDL_MOUSEBUTTONDOWN", .{});
