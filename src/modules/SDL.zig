@@ -1,6 +1,7 @@
 const SDL2 = @cImport({
     @cInclude("SDL2/SDL.h");
     @cInclude("SDL2/SDL_image.h");
+    @cInclude("SDL2/SDL_syswm.h");
 });
 
 const std = @import("std");
@@ -122,11 +123,24 @@ pub const Window = struct {
         pub fn clear(self: Renderer) void {
             _ = SDL2.SDL_RenderClear(self.renderer);
         }
-        pub fn renderCopy(self: Renderer, tex: Texture, src: ?*Rect, dest: ?*Rect) void {
+        pub fn renderCopy(self: Renderer, tex: Texture, src: ?*const Rect, dest: ?*const Rect) void {
             _ = SDL2.SDL_RenderCopy(self.renderer, tex.texture, src, dest);
         }
         pub fn present(self: Renderer) void {
             SDL2.SDL_RenderPresent(self.renderer);
+        }
+        pub fn createTarget(self: Renderer, targetSize: Position) Texture {
+            var tex = SDL2.SDL_CreateTexture(self.renderer, SDL2.SDL_PIXELFORMAT_RGBA8888, SDL2.SDL_TEXTUREACCESS_TARGET, targetSize.x, targetSize.y);
+            return Texture{
+                .texture = tex,
+            };
+        }
+        pub fn setTarget(self: Renderer, tex: ?Texture) void {
+            if (tex) |t| {
+                _ = SDL2.SDL_SetRenderTarget(self.renderer, t.texture);
+            } else {
+                _ = SDL2.SDL_SetRenderTarget(self.renderer, null);
+            }
         }
     };
     window: ?*SDL2.SDL_Window,
@@ -139,6 +153,11 @@ pub const Window = struct {
         return Renderer{
             .renderer = ren,
         };
+    }
+    pub fn size(self: Window) Position {
+        var pos = Position{ .x = 0, .y = 0 };
+        SDL2.SDL_GetWindowSize(self.window, &pos.x, &pos.y);
+        return pos;
     }
 
     pub fn deinit(self: Window) void {
@@ -165,6 +184,9 @@ pub fn createWindow(
         std.log.err("Unable to Create Window:[{s}]", .{SDL2.SDL_GetError()});
         return error.FailedToInit;
     }
+    var info: SDL2.SDL_SysWMinfo = undefined;
+    _ = SDL2.SDL_GetWindowWMInfo(res, &info);
+    std.log.err("Info:[{}]", .{info});
     return Window{
         .window = res,
     };
@@ -206,28 +228,28 @@ pub fn quit() void {
 }
 
 pub fn Delay(time_ms: u32) void {
-    std.log.info("Delay", .{});
+    //std.log.info("Delay", .{});
     SDL2.SDL_Delay(time_ms);
 }
 
 pub const Position = struct {
-    x: isize,
-    y: isize,
+    x: c_int,
+    y: c_int,
 };
 
 pub const Event = union(enum) {
     quit: usize,
     mouseMotion: Position,
+    windowResized: void,
 };
 
 var eventCount: usize = 0;
 pub fn pollEvent() ?Event {
-    std.log.info("poll", .{});
+    //std.log.info("poll", .{});
     var event: SDL2.SDL_Event = undefined;
     if (SDL2.SDL_PollEvent(&event) == 0) {
         return null;
     }
-    std.log.err("Event[{}]:[{}]", .{ eventCount, event.type });
     defer eventCount +%= 1;
     switch (event.type) {
         SDL2.SDL_AUDIODEVICEADDED => {
@@ -309,7 +331,7 @@ pub fn pollEvent() ?Event {
             std.log.err("SDL_JOYDEVICEREMOVED", .{});
         },
         SDL2.SDL_MOUSEMOTION => {
-            std.log.err("SDL_MOUSEMOTION:[{}]", .{event.motion});
+            //std.log.err("SDL_MOUSEMOTION:[{}]", .{event.motion});
             return Event{
                 .mouseMotion = .{
                     .x = event.motion.x,
@@ -345,10 +367,72 @@ pub fn pollEvent() ?Event {
             std.log.err("SDL_USEREVENT", .{});
         },
         SDL2.SDL_WINDOWEVENT => {
-            std.log.err("SDL_WINDOWEVENT", .{});
+            const wev = event.window;
+            std.log.err("window :[{}]", .{wev});
+            switch (wev.event) {
+                SDL2.SDL_WINDOWEVENT_NONE => {
+                    std.log.err("WINDOWEVENT_NONE", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_SHOWN => {
+                    std.log.err("WINDOWEVENT_SHOWN", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_HIDDEN => {
+                    std.log.err("WINDOWEVENT_HIDDEN", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_EXPOSED => {
+                    std.log.err("WINDOWEVENT_EXPOSED", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_MOVED => {
+                    std.log.err("WINDOWEVENT_MOVED", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_RESIZED => {
+                    std.log.err("WINDOWEVENT_RESIZED", .{});
+                    return Event.windowResized;
+                },
+                SDL2.SDL_WINDOWEVENT_SIZE_CHANGED => {
+                    std.log.err("WINDOWEVENT_SIZE_CHANGED", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_MINIMIZED => {
+                    std.log.err("WINDOWEVENT_MINIMIZED", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_MAXIMIZED => {
+                    std.log.err("WINDOWEVENT_MAXIMIZED", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_RESTORED => {
+                    std.log.err("WINDOWEVENT_RESTORED", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_ENTER => {
+                    std.log.err("WINDOWEVENT_ENTER", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_LEAVE => {
+                    std.log.err("WINDOWEVENT_LEAVE", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_FOCUS_GAINED => {
+                    std.log.err("WINDOWEVENT_FOCUS_GAINED", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_FOCUS_LOST => {
+                    std.log.err("WINDOWEVENT_FOCUS_LOST", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_CLOSE => {
+                    std.log.err("WINDOWEVENT_CLOSE", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_TAKE_FOCUS => {
+                    std.log.err("WINDOWEVENT_TAKE_FOCUS", .{});
+                },
+                SDL2.SDL_WINDOWEVENT_HIT_TEST => {
+                    std.log.err("WINDOWEVENT_HIT_TEST", .{});
+                },
+                else => {
+                    std.log.err("Unknown event[{}]", .{wev.type});
+                },
+            }
+            //return Event{
+            //.window =
+            //};
+
         },
         else => {
-            std.log.err("SDL undefined event", .{});
+            std.log.err("SDL undefined event:[{}]", .{event.type});
         },
     }
     return null;

@@ -1,5 +1,7 @@
 const std = @import("std");
 const sprite = @import("SpriteSheet.zig");
+const ts = @import("TextureSheet.zig");
+
 //const lua = @import("modules/lua.zig");
 const spriteSheet = @import("SpriteSheet.zig");
 const sdl = @import("modules/SDL.zig");
@@ -10,6 +12,9 @@ pub fn main() !void {
     defer window.deinit();
     var ren = try window.createRenderer();
     defer ren.deinit();
+
+    var target = ren.createTarget(.{ .x = 16 * 64, .y = 16 * 64 });
+    defer target.deinit();
 
     var img = sdl.createSurfaceFromMem(@embedFile("img.png"));
     defer img.deinit();
@@ -22,6 +27,8 @@ pub fn main() !void {
 
     var spriteTex = try spriteImg.CreateTexture(ren);
     defer spriteTex.deinit();
+
+    ts.render(ren, spriteTex, target);
 
     var spritePos = sdl.Rect{
         .x = 13 * 17,
@@ -39,6 +46,17 @@ pub fn main() !void {
         .x = 100,
         .y = 100,
     };
+    var windowSize = sdl.Rect{
+        .x = 0,
+        .y = 0,
+        .w = 0,
+        .h = 0,
+    };
+    {
+        const p = window.size();
+        windowSize.w = p.x;
+        windowSize.h = p.y;
+    }
     ren.present();
     while (true) {
         if (sdl.pollEvent()) |ev| {
@@ -49,10 +67,19 @@ pub fn main() !void {
                 .mouseMotion => |m| {
                     targetPos = m;
                 },
+                .windowResized => {
+                    const p = window.size();
+                    windowSize.w = p.x;
+                    windowSize.h = p.y;
+                },
             }
         }
         ren.clear();
-        ren.renderCopy(tex, null, null);
+        ren.renderCopy(
+            target,
+            null,
+            &windowSize,
+        );
         if (drawPos.x > targetPos.x) {
             drawPos.x -= 1;
         }
