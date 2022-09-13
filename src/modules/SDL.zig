@@ -67,6 +67,7 @@ pub const CreateFlags = struct {
     vulkan: bool = false,
     metal: bool = false,
     hidden: bool = false,
+    resizable: bool = false,
     borderless: bool = false,
     minimized: bool = false,
     maximized: bool = false,
@@ -95,6 +96,9 @@ pub const CreateFlags = struct {
         }
         if (self.borderless) {
             val |= SDL2.SDL_WINDOW_BORDERLESS;
+        }
+        if (self.resizable) {
+            val |= SDL2.SDL_WINDOW_RESIZABLE;
         }
         if (self.minimized) {
             val |= SDL2.SDL_WINDOW_MINIMIZED;

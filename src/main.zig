@@ -1,14 +1,18 @@
 const std = @import("std");
 const sprite = @import("SpriteSheet.zig");
 const ts = @import("TextureSheet.zig");
-
+const map = @import("Map.zig");
 //const lua = @import("modules/lua.zig");
 const spriteSheet = @import("SpriteSheet.zig");
 const sdl = @import("modules/SDL.zig");
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const alloc = gpa.allocator();
+
     try sdl.init(sdl.InitFlags.everything);
     defer sdl.quit();
-    var window = try sdl.createWindow("Game", null, null, 640, 480, .{ .opengl = true });
+    var window = try sdl.createWindow("Game", null, null, 1920, 1080, .{ .opengl = true, .resizable = true });
     defer window.deinit();
     var ren = try window.createRenderer();
     defer ren.deinit();
@@ -28,7 +32,9 @@ pub fn main() !void {
     var spriteTex = try spriteImg.CreateTexture(ren);
     defer spriteTex.deinit();
 
-    ts.render(ren, spriteTex, target);
+    var items = try map.m.generate(alloc);
+    defer items.deinit();
+    ts.render(ren, spriteTex, target, items.items, 50, 50);
 
     var spritePos = sdl.Rect{
         .x = 13 * 17,

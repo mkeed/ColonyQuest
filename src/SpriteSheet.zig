@@ -1,5 +1,11 @@
 const std = @import("std");
 
+pub const Sprite = struct {
+    x: usize,
+    y: usize,
+    sheet: usize,
+};
+
 pub const TileSheet = struct {
     data: []const u8,
     numX: usize,
